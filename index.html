@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Green Mind - AI Waste Segregation</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+
+        body {
+            height: 100vh;
+            /* Same background image for consistency */
+            background: url("https://t3.ftcdn.net/jpg/06/41/98/58/360_F_641985839_9glBXvkaypmPWxGHbwWQQw319veZXUVO.jpg") no-repeat center center/cover;
+            display: flex; justify-content: center; align-items: center;
+        }
+
+        .front-page-box {
+            width: 90%;
+            max-width: 600px;
+            padding: 50px 40px;
+            /* Glassmorphism effect */
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+            color: #fff; 
+            text-align: center;
+        }
+
+        .front-page-box h1 {
+            font-size: 3em;
+            font-weight: 700;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
+        }
+
+        .front-page-box h2 {
+            font-size: 1.2em;
+            font-weight: 400;
+            margin-bottom: 30px;
+        }
+
+        .front-page-box p {
+            font-size: 1.1em;
+            margin-bottom: 40px;
+            line-height: 1.6;
+        }
+
+        .button-group {
+            display: flex;
+            justify-content: center;
+            gap: 20px; /* Space between buttons */
+        }
+
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.3s ease;
+            text-decoration: none; /* For use with <a> tags */
+        }
+        
+        /* Green primary button for Signup */
+        .btn-primary {
+            color: #fff;
+            background: linear-gradient(90deg, #56ab2f, #a8e063);
+            box-shadow: 0 4px 15px rgba(86, 171, 47, 0.4);
+        }
+        .btn-primary:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+
+        /* Transparent secondary button for Login */
+        .btn-secondary {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid #fff;
+        }
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="front-page-box">
+        <h1>🌱 Green Mind</h1>
+        <h2>Your AI-Powered Guide to Waste Segregation</h2>
+        <p>
+            Join the movement toward a cleaner planet. Use **Green Mind** to instantly identify and classify waste items—from plastic bottles to organic compost—and find the nearest responsible recycling options.
+            **Let's recycle smarter, not harder.**
+        </p>
+
+        <div class="button-group">
+            <a href="/signup" class="btn btn-primary">Get Started (Signup)</a>
+            <a href="/login" class="btn btn-secondary">I already have an account (Login)</a>
+        </div>
+    </div>
+</body>
+</html>
