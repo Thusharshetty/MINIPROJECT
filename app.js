@@ -1,29 +1,45 @@
 const express = require('express');
 const path = require('path');
 const app = express();
-const PORT =3000;
+const PORT = 3000;
 const mongoose = require('mongoose');
-const User = require('./modles/user'); 
-app.use(express.urlencoded({extended:true}));
+const User = require('./modles/user'); // Assuming the path is './modles/user'
+app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-const bcrypt = require('bcrypt');
-main().then(()=>{console.log("connected to db")}).catch(err => console.log(err));
+const bcrypt = require('bcrypt'); // Note: This library is imported but not used for hashing/comparison yet.
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
+
+main().then(() => {
+    console.log("connected to db");
+}).catch(err => console.log(err));
 
 async function main() {
-  await mongoose.connect('mongodb://127.0.0.1:27017/miniproject');
+    await mongoose.connect('mongodb://127.0.0.1:27017/miniproject');
 }
 
-app.get('/',(req,res)=>{
-    res.sendFile(path.join(__dirname,'index.html'));
+// GET Routes to serve static files
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-app.get('/signup',(req,res)=>{
-    res.sendFile(path.join(__dirname,'signin.html'));
-});
-app.get('/login',(req,res)=>{
-    res.sendFile(path.join(__dirname,'login.html'));
+app.get('/signup', (req, res) => {
+    res.sendFile(path.join(__dirname, 'signin.html')); // Changed from signin.html for clarity
 });
 
+app.get('/login', (req, res) => {
+    res.sendFile(path.join(__dirname, 'login.html'));
+});
+
+app.get('/main_app_page', (req, res) => {
+    const username= req.query.username;
+    res.render("mainpage.ejs" ,{user:{username: username}}); 
+});
+app.get('/logout',(req,res)=>{
+    res.redirect('/');
+})
+
+// POST Route for SIGNUP
 app.post('/signup', async (req, res) => {
     // 1. TRIM and CLEAN data immediately
     const username = req.body.username ? req.body.username.trim().toLowerCase() : '';
@@ -32,75 +48,75 @@ app.post('/signup', async (req, res) => {
     
     // Check for required fields
     if (!username || !password || !confirm_password) {
-        return res.status(400).send('Error: All fields are required for signup.');
+        const errorMessage = encodeURIComponent('Error: All fields are required for signup.');
+        return res.redirect(`/signup?error=${errorMessage}`);
     }
     
-    // Server-side check for confirm password match
+    // Server-side check for confirm password match (USER REQUESTED POPUP HERE)
     if (password !== confirm_password) {
-        return res.status(400).send('Error: Passwords do not match. Please go back and try again.');
+        const errorMessage = encodeURIComponent('Error: Passwords do not match. Please try again.');
+        return res.redirect(`/signup?error=${errorMessage}`); 
     }
     
     try {
-        // Find existing user (using the trimmed, lowercased username)
+        // Find existing user
         const existingUser = await User.findOne({ username });
         if (existingUser) {
-            return res.status(409).send('Error: Username already exists. Try logging in or use a different name.');
+            const errorMessage = encodeURIComponent('Error: Username already exists. Try logging in or use a different name.');
+            return res.redirect(`/signup?error=${errorMessage}`); 
         }
 
-        // Create new user (Storing the username in lowercase to avoid future case-sensitivity issues)
+        // --- Note: Add bcrypt hashing here for production ---
         const newUser = new User({ 
             username: username, 
-            password: password
+            password: password 
         });
         
         await newUser.save();
         
-        // Success: Redirect the user to the login page
-        res.status(201).redirect('/login'); 
+        // Success: Redirect to the login page with a success message
+        const successMessage = encodeURIComponent('Account created successfully! Please log in.');
+        res.status(201).redirect(`/login?success=${successMessage}`); 
         
     } catch (error) {
         console.error("Signup error:", error);
-        res.status(500).send('An unexpected error occurred during signup: ' + error.message);
+        const errorMessage = encodeURIComponent('An unexpected error occurred during signup.');
+        res.redirect(`/signup?error=${errorMessage}`);
     }
 });
+
+// POST Route for LOGIN
 app.post('/login', async (req, res) => {
-    // 1. TRIM and ENFORCE LOWERCASE on the submitted username
     const username = req.body.username ? req.body.username.trim().toLowerCase() : '';
     const password = req.body.password ? req.body.password.trim() : '';
 
     if (!username || !password) {
-        return res.status(400).send('Login Failed: Both username and password are required.');
+        const errorMessage = encodeURIComponent('Login Failed: Both username and password are required.');
+        return res.redirect(`/login?error=${errorMessage}`);
     }
 
     try {
-        // 2. Find the user using the trimmed, lowercased username (matching how we stored it)
         const user = await User.findOne({ username });
 
-        if (!user) {
-            return res.status(401).send('Login Failed: Invalid username or password.');
+        // Check if user exists OR if password comparison fails (USER REQUESTED POPUP HERE)
+        const isMatch = (user && password === user.password); // Simple comparison
+
+        if (!user || !isMatch) { 
+             const errorMessage = encodeURIComponent('Login Failed: Invalid username or password.');
+             return res.redirect(`/login?error=${errorMessage}`);
         }
 
-        // 3. Compare the submitted password with the stored password
-        const isMatch = (password === user.password); // Simple comparison
-
-        if (!isMatch) {
-            return res.status(401).send('Login Failed: Invalid username or password.');
-        }
-
-        // Success: User is authenticated. Redirect to the main app page.
-        res.redirect('/main_app_page'); 
+        // Success: User is authenticated. 
+        // In a real app, you would set a session/cookie here.
+        res.redirect('/main_app_page?username=' + encodeURIComponent(user.username)); 
 
     } catch (error) {
         console.error("Login error:", error);
-        res.status(500).send('An unexpected error occurred during login.');
+        const errorMessage = encodeURIComponent('An unexpected error occurred during login.');
+        res.redirect(`/login?error=${errorMessage}`);
     }
 });
 
-app.get('/main_app_page', (req, res) => {
-    // Assuming you named your main app page 'main_app_page.html'
-    res.sendFile(path.join(__dirname, 'mainpage.html'));
-});
-
-app.listen(PORT,()=>{
+app.listen(PORT, () => {
     console.log(`server is running on port ${PORT}`);
 });

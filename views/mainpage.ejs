@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Waste Segregation Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Colors inspired by the gradient in the reference image */
+            --header-gradient-start: #007bff; /* A bright blue */
+            --header-gradient-end: #00bcd4; /* A vibrant cyan */
+            --primary-color: #007bff; /* Main accent blue */
+            --secondary-color: #00bcd4; /* Second accent cyan */
+            --accent-color: #5cc8e6; /* Lighter shade of cyan */
+            --light-bg-color: #f0f8ff; /* Very light blue for overall background */
+            --card-bg-color: #ffffff;
+            --sidebar-bg-color: #ffffff;
+            --text-dark: #333;
+            --text-muted: #666;
+            --text-light: #f8f9fa;
+        }
+        
+        body {
+            font-family: 'Open Sans', sans-serif;
+            background-color: var(--light-bg-color);
+            color: var(--text-dark);
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            color: var(--text-dark);
+        }
+
+        .text-primary {
+            color: var(--primary-color) !important;
+        }
+
+        .btn-primary {
+            background-color: var(--secondary-color);
+            border-color: var(--secondary-color);
+            padding: 10px 25px;
+            border-radius: 50px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            background-color: #0097a7;
+            border-color: #0097a7;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 188, 212, 0.3);
+        }
+
+        .btn-outline-secondary {
+            border-color: rgba(0, 0, 0, 0.15);
+            color: var(--text-muted);
+            border-radius: 50px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-outline-secondary:hover {
+            background-color: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+
+        /* --- Navbar --- */
+        .navbar {
+            background-color: var(--card-bg-color);
+            border-bottom: 1px solid #eee;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.05);
+            padding: 1rem 0;
+        }
+        
+        .navbar-brand {
+            font-weight: 700;
+            color: var(--primary-color) !important;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .navbar-brand i {
+            font-size: 1.8rem;
+            color: var(--secondary-color);
+            margin-right: 10px;
+        }
+
+        /* User Info in Navbar */
+        .user-nav-info {
+            display: flex;
+            align-items: center;
+            margin-right: 15px;
+            color: var(--text-dark);
+            font-weight: 600;
+        }
+
+        .user-nav-info .avatar {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, var(--header-gradient-start), var(--header-gradient-end));
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-right: 10px;
+        }
+        .user-nav-info .name {
+            font-weight: 600;
+            margin-right: 15px;
+        }
+
+        /* --- Main Content Cards --- */
+        .dashboard-card {
+            background-color: var(--card-bg-color);
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            padding: 30px;
+            margin-bottom: 25px;
+            border: none;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+        }
+        
+        .stat-card .number {
+            font-size: 3.2rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+        
+        .waste-type {
+            padding: 8px 18px;
+            border-radius: 25px;
+            font-weight: 600;
+            font-size: 1rem;
+        }
+        
+        .plastic { background-color: #e0f2f7; color: #26c6da; }
+        .bio { background-color: #e8f5e9; color: #66bb6a; }
+        .recyclable { background-color: #fff3e0; color: #ff8a65; }
+        .e-waste { background-color: #fce4ec; color: #ec407a; }
+        
+        /* --- Upload Area Style --- */
+        .upload-area {
+            border: 3px dashed var(--accent-color); 
+            border-radius: 20px;
+            padding: 60px 30px; 
+            background-color: #ffffff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.03);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .upload-area:hover {
+            border-color: var(--primary-color);
+            background-color: var(--light-bg-color);
+            box-shadow: inset 0 0 15px rgba(0, 123, 255, 0.1);
+        }
+        
+        .upload-area i {
+            font-size: 72px;
+            color: var(--primary-color);
+            margin-bottom: 25px;
+            transition: color 0.3s ease;
+        }
+        
+        .upload-area h5 {
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        /* --- Classification Result --- */
+        .result-card {
+            border-left: 6px solid var(--primary-color);
+            border-radius: 15px;
+        }
+
+        /* --- Map Container Style --- */
+        .map-container {
+            height: 350px;
+            border-radius: 15px;
+            background-color: #e3f2fd;
+            border: 5px solid var(--accent-color);
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        .map-container:hover {
+            border-color: var(--primary-color);
+        }
+
+        .activity-item i {
+            color: var(--secondary-color);
+        }
+        
+        /* --- New Button Style for Project Details --- */
+        .details-button {
+            /* Inherit card appearance */
+            background: linear-gradient(45deg, var(--header-gradient-start), var(--header-gradient-end));
+            font-size: smaller;
+            color: white;
+            border: none;
+            border-radius: 15px;
+            padding: 10px 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s ease;
+            
+            /* Ensure it acts like a block element in the flex container */
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .details-button:hover {
+            box-shadow: 0 8px 25px rgba(0,0,0,0.25);
+            transform: translateY(-2px);
+            background: linear-gradient(45deg, #0069d9, #00a4b7); /* Slight darkening on hover */
+        }
+
+        .details-button h4 {
+            color: white;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+        .details-button p {
+            font-size: 0.95rem;
+            margin-bottom: 8px;
+            line-height: 1.4;
+            color: rgba(255, 255, 255, 0.9);
+        }
+        .details-button p strong {
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 600;
+        }
+        
+        /* --- Footer --- */
+        footer {
+            background: linear-gradient(135deg, var(--header-gradient-start), var(--header-gradient-end));
+            color: var(--text-light);
+            padding: 40px 0;
+            margin-top: 60px;
+        }
+    </style>
+</head>
+<body>
+    
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container-fluid mx-4">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-recycle me-2"></i>AI Waste Segregation System
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+                <div class="user-nav-info d-none d-lg-flex">
+                    <div class="avatar"><%=user.username ? user.username.charAt(0).toUpperCase() : 'T' %></div>
+                    <span class="name fw-bolder"><%=user.username%></span>
+                </div>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="btn btn-outline-secondary btn-sm" href="/logout">
+                            <i class="fas fa-sign-out-alt me-1"></i> Logout
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="row">
+            
+            <main class="col-12 px-4 py-4">
+                
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">Dashboard</h1>
+                    
+                    <button class="details-button" id="scrollToFooterBtn">
+                        <h4>Project Details</h4>
+                    </button>
+                    
+                </div>
+
+                <div class="row">
+                    <div class="col-xl-3 col-md-6 mb-4">
+                        <div class="dashboard-card stat-card">
+                            <div class="number">156</div>
+                            <div class="text-muted">Total Classifications</div>
+                        </div>
+                    </div>
+                    <div class="col-xl-3 col-md-6 mb-4">
+                        <div class="dashboard-card stat-card">
+                            <div class="number">94.2%</div>
+                            <div class="text-muted">System Accuracy</div>
+                        </div>
+                    </div>
+                    <div class="col-xl-3 col-md-6 mb-4">
+                        <div class="dashboard-card stat-card">
+                            <div class="number">42</div>
+                            <div class="text-muted">Recycling Centers</div>
+                        </div>
+                    </div>
+                    <div class="col-xl-3 col-md-6 mb-4">
+                        <div class="dashboard-card stat-card">
+                            <div class="number">78%</div>
+                            <div class="text-muted">User Satisfaction</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-lg-8 mb-4">
+                        <div class="dashboard-card">
+                            <h4 class="mb-4">Waste Classification</h4>
+                            
+                            <div class="upload-area mb-4" id="uploadArea">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <h5>Upload Waste Image</h5>
+                                <p class="text-muted">Drag & drop or click to upload an image of waste</p>
+                                <input type="file" id="fileInput" accept="image/*" style="display: none;">
+                                <button class="btn btn-primary mt-2" id="uploadBtn">Select Image</button>
+                            </div>
+                            
+                            <div class="result-card p-4 mb-4" id="resultCard" style="display: none;">
+                                <h5>Classification Result</h5>
+                                <div class="row mt-3">
+                                    <div class="col-md-4">
+                                        <div class="text-center">
+                                            <img id="resultImage" src="" alt="Classified waste" class="img-fluid rounded" style="max-height: 150px;">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-8">
+                                        <h6>Detected Waste Type:</h6>
+                                        <span class="waste-type plastic" id="wasteType">Plastic</span>
+                                        
+                                        <h6 class="mt-3">Disposal Guidance:</h6>
+                                        <p id="disposalGuidance">Clean and dry the plastic item before placing it in the recycling bin. Remove any labels or caps if possible.</p>
+                                        
+                                        <h6 class="mt-3">Recycling Potential:</h6>
+                                        <div class="progress">
+                                            <div class="progress-bar bg-success" role="progressbar" style="width: 85%"></div>
+                                        </div>
+                                        <small class="text-muted">85% recyclable</small>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-4">
+                                <h5>Nearby Recycling Centers</h5>
+                                <div class="map-container mb-3 d-flex align-items-center justify-content-center">
+                                    <div class="text-center">
+                                        <i class="fas fa-map-marked-alt fa-3x text-muted mb-2"></i>
+                                        <p class="text-muted">Interactive Map Loading...</p>
+                                        <small class="text-muted">Google Maps API Integration</small>
+                                    </div>
+                                </div>
+                                
+                                <div class="recycling-center">
+                                    <h6>Green Earth Recycling Center</h6>
+                                    <p class="mb-1"><i class="fas fa-map-marker-alt me-1"></i> 123 Eco Street, Mangalore</p>
+                                    <p class="mb-1"><i class="fas fa-phone me-1"></i> +91 98765 43210</p>
+                                    <p class="mb-0"><small class="text-muted">Accepts: Plastic, Paper, Metal, E-Waste</small></p>
+                                </div>
+                                
+                                <div class="recycling-center">
+                                    <h6>E-Waste Solutions</h6>
+                                    <p class="mb-1"><i class="fas fa-map-marker-alt me-1"></i> 456 Tech Park, Mangalore</p>
+                                    <p class="mb-1"><i class="fas fa-phone me-1"></i> +91 87654 32109</p>
+                                    <p class="mb-0"><small class="text-muted">Specializes in electronic waste recycling</small></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-lg-4">
+                        <div class="dashboard-card mb-4">
+                            <h5 class="mb-3">Waste Distribution</h5>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Plastic</span>
+                                <span class="fw-bold">42%</span>
+                            </div>
+                            <div class="progress mb-3">
+                                <div class="progress-bar" role="progressbar" style="width: 42%; background-color: #007bff;"></div>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Organic</span>
+                                <span class="fw-bold">28%</span>
+                            </div>
+                            <div class="progress mb-3">
+                                <div class="progress-bar" role="progressbar" style="width: 28%; background-color: #4caf50;"></div>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Recyclable</span>
+                                <span class="fw-bold">18%</span>
+                            </div>
+                            <div class="progress mb-3">
+                                <div class="progress-bar" role="progressbar" style="width: 18%; background-color: #ff9800;"></div>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>E-Waste</span>
+                                <span class="fw-bold">12%</span>
+                            </div>
+                            <div class="progress mb-3">
+                                <div class="progress-bar" role="progressbar" style="width: 12%; background-color: #e91e63;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <footer>
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>AI-Driven Waste Segregation System</h5>
+                    <p>Department of Computer Science and Engineering<br>
+                    Canara Engineering College, Mangalore</p>
+                </div>
+                <div class="col-md-3">
+                    <h5>Team Members</h5>
+                    <ul class="list-unstyled">
+                        <li>Tarun Shetty</li>
+                        <li>Thushar Shetty</li>
+                        <li>Suraj Banajawad</li>
+                        <li>Vikas</li>
+                    </ul>
+                </div>
+                <div class="col-md-3">
+                    <h5>Guide</h5>
+                    <p>Dr. Sunil Kumar B L<br>
+                    Assoc. Professor CS&E</p>
+                </div>
+            </div>
+            <hr>
+            <div class="text-center">
+                <p class="mb-0">&copy; 2025 Canara Engineering College. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const uploadArea = document.getElementById('uploadArea');
+            const fileInput = document.getElementById('fileInput');
+            const uploadBtn = document.getElementById('uploadBtn');
+            const resultCard = document.getElementById('resultCard');
+            const resultImage = document.getElementById('resultImage');
+            const wasteType = document.getElementById('wasteType');
+            const disposalGuidance = document.getElementById('disposalGuidance');
+            
+            // --- New Scroll Functionality ---
+            const scrollToFooterBtn = document.getElementById('scrollToFooterBtn');
+            const footerElement = document.querySelector('footer');
+
+            if (scrollToFooterBtn && footerElement) {
+                scrollToFooterBtn.addEventListener('click', function() {
+                    footerElement.scrollIntoView({ behavior: 'smooth' });
+                });
+            }
+            // ---------------------------------
+
+            // Upload button click event
+            uploadBtn.addEventListener('click', function() {
+                fileInput.click();
+            });
+            
+            // File input change event
+            fileInput.addEventListener('change', function(e) {
+                if (e.target.files.length > 0) {
+                    const file = e.target.files[0];
+                    const reader = new FileReader();
+                    
+                    reader.onload = function(event) {
+                        // Show classification result with mock data
+                        resultImage.src = event.target.result;
+                        resultCard.style.display = 'block';
+                        
+                        // Mock classification based on file name or random
+                        const wasteTypes = [
+                            { type: 'Plastic', class: 'plastic', guidance: 'Clean and dry the plastic item before placing it in the recycling bin. Remove any labels or caps if possible.' },
+                            { type: 'Organic', class: 'bio', guidance: 'Compost this organic waste or dispose of it in a green bin. Avoid mixing with recyclables.' },
+                            { type: 'Recyclable', class: 'recyclable', guidance: 'This item can be recycled. Rinse if necessary and place in the appropriate recycling bin.' },
+                            { type: 'E-Waste', class: 'e-waste', guidance: 'This electronic waste contains hazardous materials. Take it to a certified e-waste recycling facility.' }
+                        ];
+                        
+                        const randomType = wasteTypes[Math.floor(Math.random() * wasteTypes.length)];
+                        
+                        wasteType.textContent = randomType.type;
+                        wasteType.className = 'waste-type ' + randomType.class;
+                        disposalGuidance.textContent = randomType.guidance;
+                        
+                        // Scroll to result
+                        resultCard.scrollIntoView({ behavior: 'smooth' });
+                    };
+                    
+                    reader.readAsDataURL(file);
+                }
+            });
+            
+            // Drag and drop functionality
+            uploadArea.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                uploadArea.classList.add('active');
+            });
+            
+            uploadArea.addEventListener('dragleave', function() {
+                uploadArea.classList.remove('active');
+            });
+            
+            uploadArea.addEventListener('drop', function(e) {
+                e.preventDefault();
+                uploadArea.classList.remove('active');
+                
+                if (e.dataTransfer.files.length > 0) {
+                    fileInput.files = e.dataTransfer.files;
+                    const event = new Event('change');
+                    fileInput.dispatchEvent(event);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
