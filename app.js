@@ -9,6 +9,13 @@ app.use(express.json());
 const bcrypt = require('bcrypt'); // Note: This library is imported but not used for hashing/comparison yet.
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
+const multer = require('multer');
+const storage = multer.memoryStorage(); // Use memory storage for quick API processing
+const upload = multer({ storage: storage });
+const dotenv = require('dotenv'); 
+dotenv.config();
+const { GoogleGenAI } = require("@google/genai");
+const ai = new GoogleGenAI({apiKey: process.env.GEMINI_API_KEY});
 
 main().then(() => {
     console.log("connected to db");
@@ -17,7 +24,105 @@ main().then(() => {
 async function main() {
     await mongoose.connect('mongodb://127.0.0.1:27017/miniproject');
 }
+app.post('/api/classify_waste', upload.single('wasteImage'), async (req, res) => {
+    
+    // Check if a file was uploaded
+    if (!req.file) {
+        return res.status(400).json({ success: false, message: "No image file uploaded." });
+    }
 
+    // 1. Prepare image and prompt for Gemini
+    const imagePart = fileToGenerativePart(req.file.buffer, req.file.mimetype);
+    
+    // This structured prompt ensures the model returns a predictable JSON response.
+    const prompt = `Analyze the waste object in this image. Classify it strictly into one of these types: 'Plastic', 'Organic', 'Recyclable', or 'E-Waste'. 
+    Then, provide disposal guidance, a recycling potential percentage (1-100), and a step-by-step process if it is 'E-Waste'. 
+    
+    Respond STRICTLY in the following JSON format ONLY:
+    {
+      "classification": "ClassificationType",
+      "guidance": "Detailed disposal instructions.",
+      "recyclingPotential": Number,
+      "isEwaste": Boolean,
+      "eWasteProcess": ["Step 1", "Step 2", "Step 3"] // Use empty array if not E-Waste
+    }`;
+
+    try {
+        // 2. Call the Gemini API
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash", // Good for multimodal tasks
+            contents: [
+                { role: "user", parts: [imagePart, { text: prompt }] }
+            ],
+            // Request JSON output
+            config: {
+                responseMimeType: "application/json", 
+            }
+        });
+
+        // 3. Parse and Validate Response
+        const jsonText = response.text.trim().replace(/```json|```/g, ''); // Clean surrounding markdown
+        const geminiResult = JSON.parse(jsonText);
+        
+        // Map Gemini classification to your existing frontend styles
+        let styleClass;
+        switch (geminiResult.classification.toLowerCase()) {
+            case 'plastic':
+                styleClass = 'plastic';
+                break;
+            case 'organic':
+                styleClass = 'bio';
+                break;
+            case 'recyclable':
+                styleClass = 'recyclable';
+                break;
+            case 'e-waste':
+                styleClass = 'e-waste';
+                break;
+            default:
+                styleClass = 'recyclable'; // Default to general recyclable
+        }
+        
+        // MOCK LOCATION DATA (This is still mock, as real location requires a separate API)
+        const mockCenters = [
+            // ... (Your existing mockCenters list) ...
+            { name: "Green Earth Recycling Center", address: "123 Eco Street, Mangalore", contact: "+91 98765 43210", accepts: "Plastic, Paper, Metal, E-Waste", isEwasteSpecialist: false },
+            { name: "E-Waste Solutions Hub", address: "456 Tech Park, Mangalore", contact: "+91 87654 32109", accepts: "Specializes in electronic waste recycling", isEwasteSpecialist: true }
+        ];
+
+        const isEwaste = geminiResult.classification.toLowerCase() === 'e-waste';
+        const nearbyCenters = isEwaste 
+            ? mockCenters.filter(c => c.isEwasteSpecialist)
+            : mockCenters.filter(c => c.accepts.includes(geminiResult.classification) || !c.isEwasteSpecialist);
+
+        // 4. Send the structured response back to the frontend
+        res.json({
+            success: true,
+            classification: geminiResult.classification,
+            styleClass: styleClass,
+            guidance: geminiResult.guidance,
+            recyclingPotential: geminiResult.recyclingPotential || 75, // Provide fallback
+            nearbyCenters: nearbyCenters,
+            eWasteProcess: geminiResult.eWasteProcess || [],
+        });
+
+    } catch (error) {
+        console.error("Gemini API or Parsing Error:", error);
+        res.status(500).json({ 
+            success: false, 
+            message: "AI classification failed or returned an invalid format.", 
+            details: error.message 
+        });
+    }
+});
+function fileToGenerativePart(buffer, mimeType) {
+    return {
+        inlineData: {
+            data: buffer.toString("base64"),
+            mimeType,
+        },
+    };
+}
 // GET Routes to serve static files
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
@@ -33,7 +138,8 @@ app.get('/login', (req, res) => {
 
 app.get('/main_app_page', (req, res) => {
     const username= req.query.username;
-    res.render("mainpage.ejs" ,{user:{username: username}}); 
+    const mapsKey = process.env.GOOGLE_MAPS_API_KEY;
+    res.render("mainpage.ejs" ,{user:{username: username},mapsKey: mapsKey}); 
 });
 app.get('/logout',(req,res)=>{
     res.redirect('/');

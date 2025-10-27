@@ -360,7 +360,9 @@
                                     </div>
                                 </div>
                             </div>
-                            
+                            <h6 class="mt-3" id="processTitle" style="display: none;">E-Waste Disposal Process:</h6>
+                            <ul id="eWasteProcessList" class="list-unstyled" style="display: none;">
+                                </ul>
                             <div class="mt-4">
                                 <h5>Nearby Recycling Centers</h5>
                                 <div class="map-container mb-3 d-flex align-items-center justify-content-center">
@@ -460,86 +462,164 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=<%= mapsKey %>&callback=initMap"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const uploadArea = document.getElementById('uploadArea');
-            const fileInput = document.getElementById('fileInput');
-            const uploadBtn = document.getElementById('uploadBtn');
-            const resultCard = document.getElementById('resultCard');
-            const resultImage = document.getElementById('resultImage');
-            const wasteType = document.getElementById('wasteType');
-            const disposalGuidance = document.getElementById('disposalGuidance');
-            
-            // --- New Scroll Functionality ---
-            const scrollToFooterBtn = document.getElementById('scrollToFooterBtn');
-            const footerElement = document.querySelector('footer');
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('fileInput');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const resultCard = document.getElementById('resultCard');
+    const resultImage = document.getElementById('resultImage');
+    const wasteType = document.getElementById('wasteType');
+    const disposalGuidance = document.getElementById('disposalGuidance');
+    const processTitle = document.getElementById('processTitle'); // NEW
+    const eWasteProcessList = document.getElementById('eWasteProcessList'); // NEW
+    const nearbyCentersContainer = document.querySelector('.mt-4 .recycling-center').parentNode; // Parent of the first center
+    const recyclingPotentialBar = document.querySelector('#resultCard .progress-bar');
+    const recyclingPotentialText = document.querySelector('#resultCard small.text-muted');
 
-            if (scrollToFooterBtn && footerElement) {
-                scrollToFooterBtn.addEventListener('click', function() {
-                    footerElement.scrollIntoView({ behavior: 'smooth' });
-                });
-            }
-            // ---------------------------------
+    // ... (Your existing scroll functionality is fine) ...
+    const scrollToFooterBtn = document.getElementById('scrollToFooterBtn');
+    const footerElement = document.querySelector('footer');
 
-            // Upload button click event
-            uploadBtn.addEventListener('click', function() {
-                fileInput.click();
-            });
-            
-            // File input change event
-            fileInput.addEventListener('change', function(e) {
-                if (e.target.files.length > 0) {
-                    const file = e.target.files[0];
-                    const reader = new FileReader();
-                    
-                    reader.onload = function(event) {
-                        // Show classification result with mock data
-                        resultImage.src = event.target.result;
-                        resultCard.style.display = 'block';
-                        
-                        // Mock classification based on file name or random
-                        const wasteTypes = [
-                            { type: 'Plastic', class: 'plastic', guidance: 'Clean and dry the plastic item before placing it in the recycling bin. Remove any labels or caps if possible.' },
-                            { type: 'Organic', class: 'bio', guidance: 'Compost this organic waste or dispose of it in a green bin. Avoid mixing with recyclables.' },
-                            { type: 'Recyclable', class: 'recyclable', guidance: 'This item can be recycled. Rinse if necessary and place in the appropriate recycling bin.' },
-                            { type: 'E-Waste', class: 'e-waste', guidance: 'This electronic waste contains hazardous materials. Take it to a certified e-waste recycling facility.' }
-                        ];
-                        
-                        const randomType = wasteTypes[Math.floor(Math.random() * wasteTypes.length)];
-                        
-                        wasteType.textContent = randomType.type;
-                        wasteType.className = 'waste-type ' + randomType.class;
-                        disposalGuidance.textContent = randomType.guidance;
-                        
-                        // Scroll to result
-                        resultCard.scrollIntoView({ behavior: 'smooth' });
-                    };
-                    
-                    reader.readAsDataURL(file);
-                }
-            });
-            
-            // Drag and drop functionality
-            uploadArea.addEventListener('dragover', function(e) {
-                e.preventDefault();
-                uploadArea.classList.add('active');
-            });
-            
-            uploadArea.addEventListener('dragleave', function() {
-                uploadArea.classList.remove('active');
-            });
-            
-            uploadArea.addEventListener('drop', function(e) {
-                e.preventDefault();
-                uploadArea.classList.remove('active');
-                
-                if (e.dataTransfer.files.length > 0) {
-                    fileInput.files = e.dataTransfer.files;
-                    const event = new Event('change');
-                    fileInput.dispatchEvent(event);
-                }
-            });
+    if (scrollToFooterBtn && footerElement) {
+        scrollToFooterBtn.addEventListener('click', function() {
+            footerElement.scrollIntoView({ behavior: 'smooth' });
         });
+    }
+    // ---------------------------------
+
+    // Upload button click event
+    uploadBtn.addEventListener('click', function() {
+        fileInput.click();
+    });
+
+    // -----------------------------------------------------------------
+    // ⬇️ UPDATED: File input change event with API call
+    // -----------------------------------------------------------------
+    fileInput.addEventListener('change', async function(e) {
+        if (e.target.files.length > 0) {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+
+            // 1. Show uploaded image in result card
+            reader.onload = function(event) {
+                resultImage.src = event.target.result;
+                resultCard.style.display = 'block';
+                resultCard.scrollIntoView({ behavior: 'smooth' });
+            };
+            reader.readAsDataURL(file);
+
+            // Temporarily update UI to show loading/processing state
+            wasteType.textContent = 'Processing...';
+            wasteType.className = 'waste-type'; 
+            disposalGuidance.textContent = 'Analyzing image with AI model...';
+            recyclingPotentialBar.style.width = '100%';
+            recyclingPotentialBar.className = 'progress-bar bg-info progress-bar-striped progress-bar-animated';
+            recyclingPotentialText.textContent = 'Please wait...';
+            nearbyCentersContainer.innerHTML = '<h6>Nearby Recycling Centers</h6><p class="text-muted text-center"><i class="fas fa-spinner fa-spin me-2"></i>Searching for centers...</p>';
+            processTitle.style.display = 'none';
+            eWasteProcessList.style.display = 'none';
+            eWasteProcessList.innerHTML = '';
+            
+            // 2. Prepare FormData for API
+            const formData = new FormData();
+            formData.append('wasteImage', file);
+
+            try {
+                // 3. Send image to Express API
+                const response = await fetch('/api/classify_waste', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                // 4. Update UI with API response data
+                if (data.success) {
+                    // Classification Data
+                    wasteType.textContent = data.classification;
+                    wasteType.className = 'waste-type ' + data.styleClass; // plastic, bio, recyclable, e-waste
+                    disposalGuidance.textContent = data.guidance;
+                    
+                    // Recycling Potential
+                    recyclingPotentialBar.style.width = data.recyclingPotential + '%';
+                    recyclingPotentialBar.className = 'progress-bar bg-success';
+                    recyclingPotentialText.textContent = data.recyclingPotential + '% recyclable';
+
+                    // Nearby Centers
+                    let centersHtml = '<h5>Nearby Recycling Centers</h5>';
+                    if (data.nearbyCenters.length > 0) {
+                        data.nearbyCenters.forEach(center => {
+                            centersHtml += `
+                                <div class="recycling-center mb-3 border-bottom pb-3">
+                                    <h6>${center.name}</h6>
+                                    <p class="mb-1"><i class="fas fa-map-marker-alt me-1"></i> ${center.address}</p>
+                                    <p class="mb-1"><i class="fas fa-phone me-1"></i> ${center.contact}</p>
+                                    <p class="mb-0"><small class="text-muted">Accepts: ${center.accepts}</small></p>
+                                </div>
+                            `;
+                        });
+                    } else {
+                        centersHtml += '<p class="text-danger">No nearby specialized centers found for this type.</p>';
+                    }
+                    nearbyCentersContainer.innerHTML = centersHtml;
+
+                    // E-Waste Special Process (Step-by-step)
+                    if (data.eWasteProcess && data.eWasteProcess.length > 0) {
+                        processTitle.style.display = 'block';
+                        eWasteProcessList.style.display = 'block';
+                        let processHtml = '';
+                        data.eWasteProcess.forEach((step, index) => {
+                            processHtml += `<li><strong>${index + 1}.</strong> ${step}</li>`;
+                        });
+                        eWasteProcessList.innerHTML = processHtml;
+                    }
+                    
+                } else {
+                    alert('Classification failed: ' + (data.message || 'Unknown error.'));
+                }
+
+            } catch (error) {
+                console.error("API call error:", error);
+                wasteType.textContent = 'Error';
+                wasteType.className = 'waste-type e-waste'; // Use error color
+                disposalGuidance.textContent = 'Failed to connect to the AI service. Please try again.';
+                nearbyCentersContainer.innerHTML = '<h6>Nearby Recycling Centers</h6><p class="text-danger">Failed to load center data.</p>';
+            }
+        }
+    });
+    // -----------------------------------------------------------------
+
+    // Drag and drop functionality (no change needed here)
+    uploadArea.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        uploadArea.classList.add('active');
+    });
+
+    uploadArea.addEventListener('dragleave', function() {
+        uploadArea.classList.remove('active');
+    });
+
+    uploadArea.addEventListener('drop', function(e) {
+        e.preventDefault();
+        uploadArea.classList.remove('active');
+
+        if (e.dataTransfer.files.length > 0) {
+            fileInput.files = e.dataTransfer.files;
+            const event = new Event('change');
+            fileInput.dispatchEvent(event);
+        }
+    });
+});
+function initMap() {
+        console.log("Google Maps script loaded successfully.");
+        // Code to display an interactive map goes here
+    }
     </script>
 </body>
 </html>
